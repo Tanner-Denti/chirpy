@@ -18,19 +18,19 @@ func handlerValidateChirpPost(w http.ResponseWriter, r *http.Request) {
 
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		respondWithError(w, 500, "Could not read request", err) // How should I handle this error if it returns one?
+		respondWithError(w, http.StatusInternalServerError, "Could not read request", err) // How should I handle this error if it returns one?
 		return
 	}
 	
 	var req requestBody
 	err = json.Unmarshal(reqBody, &req)
 	if err != nil {
-		respondWithError(w, 500, "Could not unmarshal parameters", err) // How should I handle this error if it returns one?
+		respondWithError(w, http.StatusInternalServerError, "Could not unmarshal parameters", err) // How should I handle this error if it returns one?
 		return
 	}
 
 	if len(req.Body) > 140 {
-		respondWithError(w, 400, "Chirp is too long", nil)
+		respondWithError(w, http.StatusBadRequest, "Chirp is too long", nil)
 		return
 	}
 
