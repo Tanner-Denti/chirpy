@@ -10,13 +10,15 @@ import (
 	"time"
 )
 
-type chirpDto struct {
+type chirpResponse struct {
 	ID uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Body string `json:"body"`
 	UserId uuid.UUID `json:"user_id"`
 }
+
+type chirpsResponse []chirpResponse
 
 func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
@@ -38,7 +40,7 @@ func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	response := chirpDto{
+	response := chirpResponse{
 		ID: dbChirp.ID,
 		CreatedAt: dbChirp.CreatedAt,
 		UpdatedAt: dbChirp.UpdatedAt,
@@ -57,9 +59,9 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	chirps := []chirpDto{}
+	chirps := chirpsResponse{}
 	for _, dbChirp := range dbChirps {
-		chirps = append(chirps, chirpDto{
+		chirps = append(chirps, chirpResponse{
 			ID: dbChirp.ID,
 			CreatedAt: dbChirp.CreatedAt,
 			UpdatedAt: dbChirp.UpdatedAt,
@@ -109,7 +111,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return 
 	}
 	
-	response := chirpDto{
+	response := chirpResponse{
 		ID: dbChirp.ID,
 		CreatedAt: dbChirp.CreatedAt,
 		UpdatedAt: dbChirp.UpdatedAt,
