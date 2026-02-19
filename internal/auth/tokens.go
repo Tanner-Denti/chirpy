@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -12,13 +14,25 @@ import (
 type TokenType string
 
 const (
-	TokenTypeAccess TokenType = "chirpy-access"
+	TOKEN_TYPE_ACCESS TokenType = "chirpy-access"
+	DEFAULT_JWT_EXPIRATION = time.Hour
+	DEFAULT_REFRESH_EXPIRATION = 60 * 24 * time.Hour
 )
+
+func MakeRefreshToken() (string, error) {
+	key := make([]byte, 32)
+	_, err := rand.Read(key)
+	if err != nil {
+		return "", err
+	}
+	
+	return hex.EncodeToString(key), nil
+}
 
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	now := time.Now().UTC()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Issuer: string(TokenTypeAccess),
+		Issuer: string(TOKEN_TYPE_ACCESS),
 		IssuedAt: jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(expiresIn)),
 		Subject: userID.String(),
@@ -45,7 +59,7 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return uuid.UUID{}, err
 	}
 
-	if issuer != string(TokenTypeAccess) {
+	if issuer != string(TOKEN_TYPE_ACCESS) {
 		return uuid.UUID{}, errors.New("invalid issuer")
 	}
 

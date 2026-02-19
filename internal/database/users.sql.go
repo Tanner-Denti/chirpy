@@ -7,6 +7,8 @@ package database
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -18,7 +20,7 @@ values (
     $1,
     $2
 )
-returning id, created_at, updated_at, email, hashed_password
+returning id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type CreateUserParams struct {
@@ -35,6 +37,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -49,7 +52,7 @@ func (q *Queries) DeleteUsers(ctx context.Context) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-select id, created_at, updated_at, email, hashed_password
+select id, created_at, updated_at, email, hashed_password, is_chirpy_red
 from users
 where email = $1
 `
@@ -63,6 +66,55 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
+	)
+	return i, err
+}
+
+const updateUserByID = `-- name: UpdateUserByID :one
+update users
+set email = $1, hashed_password = $2, updated_at = now()
+where id = $3
+returning id, created_at, updated_at, email, hashed_password, is_chirpy_red
+`
+
+type UpdateUserByIDParams struct {
+	Email          string
+	HashedPassword string
+	ID             uuid.UUID
+}
+
+func (q *Queries) UpdateUserByID(ctx context.Context, arg UpdateUserByIDParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserByID, arg.Email, arg.HashedPassword, arg.ID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.HashedPassword,
+		&i.IsChirpyRed,
+	)
+	return i, err
+}
+
+const updateUserChirpyRedByID = `-- name: UpdateUserChirpyRedByID :one
+update users
+set is_chirpy_red = true
+where id = $1
+returning id, created_at, updated_at, email, hashed_password, is_chirpy_red
+`
+
+func (q *Queries) UpdateUserChirpyRedByID(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserChirpyRedByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }

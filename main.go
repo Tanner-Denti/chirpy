@@ -1,20 +1,23 @@
 package main
 
 import (
-	_ "github.com/lib/pq"
-	"github.com/joho/godotenv"
-	"github.com/Tanner-Denti/chirpy/internal/database"
+	"database/sql"
 	"log"
 	"net/http"
-	"sync/atomic"
 	"os"
-	"database/sql"
+	"sync/atomic"
+
+	"github.com/Tanner-Denti/chirpy/internal/database"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-	db *database.Queries
-	platform string
+	db             *database.Queries
+	platform       string
+	jwtSecret      string
+	polkaKey string
 }
 
 func main() {
@@ -34,11 +37,15 @@ func main() {
 	dbQueries := database.New(db)
 
 	platform := os.Getenv("PLATFORM")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
-	apiCfg := apiConfig { 
+	apiCfg := apiConfig{
 		fileserverHits: atomic.Int32{},
-		db: dbQueries,
-		platform: platform,
+		db:             dbQueries,
+		platform:       platform,
+		jwtSecret:      jwtSecret,
+		polkaKey: polkaKey,
 	}
 
 	mux := http.NewServeMux()
@@ -49,26 +56,25 @@ func main() {
 
 	mux.HandleFunc("POST /api/login", apiCfg.handleUserLogin)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
+	mux.HandleFunc("POST /api/refresh", apiCfg.handleRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handleRevoke)
+	mux.HandleFunc("PUT /api/users", apiCfg.handleUpdateUser)
+
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerPolkaWebhook)
 
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirpByID)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetricsGet)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerResetGet)
 
 	srv := &http.Server{
-		Addr: ":" + port,
+		Addr:    ":" + port,
 		Handler: mux,
 	}
-	
+
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	log.Fatal(srv.ListenAndServe())
 }
-
-
-
-
-
-
-
